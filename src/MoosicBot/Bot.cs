@@ -43,11 +43,70 @@ public class Bot
         client.Log += DiscordLog;
         client.Ready += ClientReady;
         client.InteractionCreated += InteractionCreated;
+        client.MessageReceived += ClientMessageReceived;
+
+        provider.GetRequiredService<InteractionService>().SlashCommandExecuted += PostCommandHandle;
+        
         provider.GetRequiredService<LavaNode>().OnLog += LavaLog;
        
         await client.LoginAsync(TokenType.Bot, _settings.DiscordToken);
 
         await client.StartAsync();
+
+       
+    }
+
+    private async Task PostCommandHandle(SlashCommandInfo info, IInteractionContext context, IResult result)
+    {
+        if (result.IsSuccess) return;
+
+        switch (result.Error)
+        {
+            case InteractionCommandError.UnknownCommand:
+                break;
+            case InteractionCommandError.ConvertFailed:
+                break;
+            case InteractionCommandError.BadArgs:
+                break;
+            case InteractionCommandError.Exception:
+                await context.Interaction.FollowupAsync($"🤕 An exception occured: {result.ErrorReason}");
+                break;
+            case InteractionCommandError.Unsuccessful:
+                break;
+            case InteractionCommandError.UnmetPrecondition:
+                break;
+            case InteractionCommandError.ParseFailed:
+                break;
+            case null:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private Task ClientMessageReceived(SocketMessage message)
+    {
+        if(_settings.AdminIds.Contains(message.Author.Id.ToString()) == false) return Task.CompletedTask;
+        
+        if(message.MentionedUsers.Any(x => x.Id == client.CurrentUser.Id) == false) return Task.CompletedTask;
+        
+        if (message.Content.Contains("refresh guild"))
+        {
+            if (message.Channel is not SocketGuildChannel channel) return Task.CompletedTask;
+
+            var id = channel.Guild.Id;
+            provider.GetRequiredService<InteractionService>().RegisterCommandsToGuildAsync(id);
+            _log.Information("Refreshing commands for {guild} on request by {user}", channel.Guild, message.Author);
+            return Task.CompletedTask;
+        }
+
+        if (message.Content.Contains("refresh global"))
+        {
+            _log.Information("Refreshing commands globally on request by {user}", message.Author);
+            provider.GetRequiredService<InteractionService>().RegisterCommandsGloballyAsync();
+        }
+
+        return Task.CompletedTask;
     }
 
     private Task InteractionCreated(SocketInteraction interaction)

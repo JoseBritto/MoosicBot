@@ -6,7 +6,11 @@ public interface ISettings
 {
     [Option(Alias = "discord_token")]
     public string DiscordToken { get; }
+    
+    [Option(Alias = "admin_ids")]
+    public string[] AdminIds { get; }
 
+    
     [Option(Alias = "lavalink")]
     public ILavalink Lavalink { get; }
     
