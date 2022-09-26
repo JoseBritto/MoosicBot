@@ -1,5 +1,9 @@
 ﻿using Config.Net;
 using MoosicBot;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
+// ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
 
 
 const string CONFIG_FILE = "config.json";
@@ -9,7 +13,30 @@ var settings = new ConfigurationBuilder<ISettings>()
     .UseEnvironmentVariables()
     .Build();
 
-Console.WriteLine("The token is: ");
-Console.WriteLine(settings.DiscordToken);
 
-// to be done
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Is(LogEventLevel.Debug)
+    .WriteTo.Console(
+        outputTemplate: "[{SourceContext}({Timestamp:t})] {Level:u4}: {Message:lj}{NewLine}{Exception}"
+    )
+    .Enrich.FromLogContext()
+    .CreateLogger();
+
+Log.Information("Application Started");
+
+try
+{
+    var bot = new Bot(settings);
+    bot.StartAsync().Wait();
+    Task.Delay(-1).Wait();
+}
+catch (Exception e)
+{
+    Log.Fatal(exception: e, messageTemplate: "Unknown Error Occured!");
+}
+finally
+{
+    if(Log.Logger is not null)
+        Log.CloseAndFlush();
+}
+
