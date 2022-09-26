@@ -11,3 +11,5 @@ var settings = new ConfigurationBuilder<ISettings>()
 
 Console.WriteLine("The token is: ");
 Console.WriteLine(settings.DiscordToken);
+
+// to be done
